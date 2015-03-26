@@ -104,6 +104,59 @@
   (print-unreadable-object (device stream :type t :identity t)
     (prin1 (device-name device) stream)))
 
+(defgeneric enable-buffer (device)
+  (:documentation "Enable the buffer of the device DEVICE.")
+  (:method ((device device))
+    (with-open-file (s (merge-pathnames "buffer/enable" (device-pathname device))
+                       :direction ':output
+                       :element-type 'character
+                       :if-does-not-exist ':error)
+      (write-line "1" s)
+      nil)))
+
+(defgeneric disable-buffer (device)
+  (:documentation "Disable the buffer of the device DEVICE.")
+  (:method ((device device))
+    (with-open-file (s (merge-pathnames "buffer/enable" (device-pathname device))
+                       :direction ':output
+                       :element-type 'character
+                       :if-does-not-exist ':error)
+      (write-line "0" s)
+      nil)))
+
+(defgeneric buffer-enabled-p (device)
+  (:documentation "Is the buffer of the device DEVICE enabled?")
+  (:method ((device device))
+    (let ((line (read-one-line
+                 (merge-pathnames "buffer/enable" (device-pathname device)))))
+      (not (string= "0" line)))))
+
+(defgeneric buffer-length (device)
+  (:documentation "What is the length of the buffer of the devide DEVICE?")
+  (:method ((device device))
+    (let ((line (read-one-line
+                 (merge-pathnames "buffer/length" (device-pathname device)))))
+      (values (parse-integer line :radix 10)))))
+
+;;; FIXME: make into a SETF method
+(defgeneric set-buffer-length (device length)
+  ;; XXX: Clarify: Is this number of bytes, or number of records?
+  (:documentation "Set the buffer length of the device DEVICE to LENGTH.")
+  (:method ((device device) length)
+    (check-type length unsigned-byte)
+    (assert (not (buffer-enabled-p device))
+            (device)
+            "The device ~S has its buffer enabled, but it must be disabled when ~
+             setting the length."
+            device)
+    (with-open-file (s (merge-pathnames "buffer/length" (device-pathname device))
+                       :direction ':output
+                       :element-type 'character
+                       :if-does-not-exist ':error)
+      (format s "~D~%" length))))
+
+(defsetf buffer-length set-buffer-length)
+
 (defgeneric open-device (device)
   (:documentation "Open the device DEVICE for reading.")
   (:method ((device device))
