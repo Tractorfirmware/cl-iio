@@ -212,8 +212,18 @@
                    :character-device-pathname (merge-pathnames assignment "/dev/")
                    :channels (channels-from-device-path device-path))))
 
-(defun find-device-by-name (name-query)
-  "Find a device named by the string NAME-QUERY and return a DEVICE object. If one wasn't found, return NIL."
-  (dolist (device-path (device-paths))
-    (when (string= name-query (name-from-device-path device-path))
-      (return (device-from-device-path device-path)))))
+(defvar *device-cache* (make-hash-table :test 'equal)
+  "A cache of device objects. The table maps the device name to its device object.")
+
+(defun find-device-by-name (name-query &key (refresh-cache nil))
+  "Find a device named by the string NAME-QUERY and return a DEVICE object. If one wasn't found, return NIL.
+
+If REFRESH-CACHE is T, then the cache entry will be reset for the device that's found."
+  (let ((maybe-object (gethash name-query *device-cache*)))
+    (if (not (or refresh-cache
+                 (null maybe-object)))
+        maybe-object
+        (dolist (device-path (device-paths))
+          (when (string= name-query (name-from-device-path device-path))
+            (return (setf (gethash name-query *device-cache*)
+                          (device-from-device-path device-path))))))))
