@@ -26,9 +26,13 @@ connoct:
 	modprobe iio_dummy
 	modprobe iio_trig_sysfs
 	echo "0" > /sys/bus/iio/devices/iio_sysfs_trigger/add_trigger
-	echo "sysfstrig0" > iio\:device0/trigger/current_trigger
+	echo "sysfstrig0" > /sys/bus/iio/devices/iio\:device0/trigger/current_trigger
+	echo "10" > /sys/bus/iio/devices/iio\:device0/buffer/length
+	echo "1"  > /sys/bus/iio/devices/iio\:device0/scan_elements/in_accel_x_en
+	echo "1"  > /sys/bus/iio/devices/iio\:device0/buffer/enable
 
 unconnoct:
+	echo "0" > /sys/bus/iio/devices/iio\:device0/buffer/enable
 	echo "NULL" > /sys/bus/iio/devices/iio\:device0/trigger/current_trigger
 	echo "0" > /sys/bus/iio/devices/iio_sysfs_trigger/remove_trigger
 	modprobe -r iio_trig_sysfs
