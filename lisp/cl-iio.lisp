@@ -161,7 +161,7 @@
      (parse-integer shift-amount))))
 
 (defun channels-from-device-path (device-path)
-  "Find all the channels given the device pathname DEVICE-PATH. Return a list of CHANNEL objects."
+  "Find all the channels given the device pathname DEVICE-PATH. Return a vector of CHANNEL objects."
   ;; FIXME: This function is only aware of in_* channels.
   (let ((channel-path (merge-pathnames "scan_elements/" device-path)))
     (labels ((channel-name-from-file (file)
@@ -177,7 +177,9 @@
                  (merge-pathnames filename channel-path)))
              (index-pathname (name)
                (let ((filename (concatenate 'string "in_" name "_index")))
-                 (merge-pathnames filename channel-path))))
+                 (merge-pathnames filename channel-path)))
+             (sort-channels (channels)
+               (sort channels #'< :key #'channel-index)))
       (let* ((channel-files (cl-fad:list-directory channel-path))
              (channel-names (delete-duplicates
                              (mapcar #'channel-name-from-file channel-files)
@@ -200,7 +202,9 @@
                                :signedness signedness
                                :data-length bits-total
                                :byte-length bits-used
-                               :byte-position shift)))))))
+                               :byte-position shift))
+                :into channels
+              :finally (return (sort-channels (coerce channels 'vector))))))))
 
 (defun device-from-device-path (device-path)
   "Create a DEVICE object given its device pathname DEVICE-PATH."
@@ -227,3 +231,4 @@ If REFRESH-CACHE is T, then the cache entry will be reset for the device that's 
           (when (string= name-query (name-from-device-path device-path))
             (return (setf (gethash name-query *device-cache*)
                           (device-from-device-path device-path))))))))
+
