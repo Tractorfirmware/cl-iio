@@ -338,9 +338,10 @@ If RECORD-LENGTH is specified, then it will be assumed that RECORD-LENGTH bytes 
     (setf record-length (device-record-length device)))
   (when (null buffer)
     (setf buffer (make-array record-length :element-type '(unsigned-byte 8)
-                                           :initial-element 0)))
-  (read-sequence buffer (device-stream device))
-  buffer)
+                                          :initial-element 0)))
+  (let ((bytes-read (read-sequence buffer (device-stream device))))
+    (values buffer
+            bytes-read)))
 
 (defun parse-raw-record (device record)
   "Parse the record RECORD (an unsigned octet array) according to the device DEVICE.
