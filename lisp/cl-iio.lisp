@@ -57,7 +57,7 @@
   (:documentation "Enable the channel CHANNEL.")
   (:method ((channel channel))
     (with-open-file (s (channel-enabler-pathname channel)
-                       :direction ':input
+                       :direction ':output
                        :element-type 'character
                        :if-does-not-exist ':error)
       (write-line "1" s))))
@@ -66,7 +66,7 @@
   (:documentation "Disable the channel CHANNEL.")
   (:method ((channel channel))
     (with-open-file (s (channel-enabler-pathname channel)
-                       :direction ':input
+                       :direction ':output
                        :element-type 'character
                        :if-does-not-exist ':error)
       (write-line "0" s))))
@@ -75,7 +75,7 @@
   (:documentation "Is the channel CHANNEL enabled?")
   (:method ((channel channel))
     (with-open-file (s (channel-enabler-pathname channel)
-                       :direction ':output
+                       :direction ':input
                        :element-type 'character
                        :if-does-not-exist ':error)
       (char/= #\0 (read-char s t)))))
