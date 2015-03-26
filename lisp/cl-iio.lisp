@@ -141,7 +141,6 @@
     (remove-if (complement #'valid-device-pathname-p)
                (cl-fad:list-directory +iio-directory+))))
 
-
 (defun name-from-device-path (device-path)
   "Read the name of a device from its device pathname DEVICE-PATH."
   (read-one-line (merge-pathnames "name" device-path)))
@@ -257,6 +256,12 @@ If REFRESH-CACHE is T, then the cache entry will be reset for the device that's 
             (return (setf (gethash name-query *device-cache*)
                           (device-from-device-path device-path))))))))
 
+(defun find-channel-by-name (device name-query)
+  "Find the channel whose name is NAME-QUERY in the device DEVICE. If one couldn't be found, return NIL."
+  (find name-query (device-channels device)
+        :test #'string=
+        :key #'channel-name))
+
 (defun device-record-length (device)
   "Compute the expected length (in bytes) of a record to be read from the device DEVICE. The record length depends on the channels which have been enabled."
   (loop :for channel :across (device-channels device)
@@ -292,6 +297,9 @@ The output will be a vector of integer values corresponding to each channel."
                                    :initial-element 0)))
     (loop :for channel :across (device-channels device)
           :for bytes-to-read := (channel-data-length channel)
+          ;; XXX: We really shouldn't check whether a channel is
+          ;; enabled for every run. This could be calculated and
+          ;; cached.
           :when (channel-enabled-p channel)
             :do (setf (aref parsed-record (channel-index channel))
                       (ecase (channel-endianness channel)
