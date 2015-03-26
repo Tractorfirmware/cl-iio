@@ -162,7 +162,7 @@
   (:method ((device device))
     (setf (device-stream device)
           (open (device-character-device-pathname device)
-                :direction ':output
+                :direction ':input
                 :element-type '(unsigned-byte 8)
                 :if-does-not-exist ':error))))
 
