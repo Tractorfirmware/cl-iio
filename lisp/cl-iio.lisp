@@ -92,15 +92,40 @@
          :documentation "The name of the device as specified by the driver.")
    (channels :initarg :channels
              :accessor device-channels
-             :documentation "The device's channels.")
+             :documentation "The vector of the device's channels. The index of each channel in the vector corresponds to the channel's index (i.e., CHANNEL-INDEX).")
    (character-device-pathname :initarg :character-device-pathname
                               :accessor device-character-device-pathname
-                              :documentation "The pathname of the associated character device for devices that support triggered buffer operations."))
+                              :documentation "The pathname of the associated character device for devices that support triggered buffer operations.")
+   (stream :accessor device-stream
+           :documentation "The buffered stream."))
   (:documentation "An Industrial IO device."))
 
 (defmethod print-object ((device device) stream)
   (print-unreadable-object (device stream :type t :identity t)
     (prin1 (device-name device) stream)))
+
+(defgeneric open-device (device)
+  (:documentation "Open the device DEVICE for reading.")
+  (:method ((device device))
+    (setf (device-stream device)
+          (open (device-character-device-pathname device)
+                :direction ':output
+                :element-type '(unsigned-byte 8)
+                :if-does-not-exist ':error))))
+
+(defgeneric close-device (device)
+  (:documentation "Close the device DEVICE.")
+  (:method ((device device))
+    (close (device-stream device))
+    (setf (device-stream device) nil)))
+
+(defmacro with-open-device (device &body body)
+  "Execute BODYwith the device DEVICE opened, closing it afterward."
+  `(unwind-protect
+        (progn
+          (open-device device)
+          ,@body)
+     (close-device device)))
 
 (defun device-paths ()
   "List all of the device paths."
