@@ -257,3 +257,58 @@ If REFRESH-CACHE is T, then the cache entry will be reset for the device that's 
             (return (setf (gethash name-query *device-cache*)
                           (device-from-device-path device-path))))))))
 
+(defun device-record-length (device)
+  "Compute the expected length (in bytes) of a record to be read from the device DEVICE. The record length depends on the channels which have been enabled."
+  (loop :for channel :across (device-channels device)
+        :when (channel-enabled-p channel)
+          :sum (channel-data-length channel) :into bit-length
+        :finally (return (ceiling bit-length 8))))
+
+(defun read-raw-record (device &key buffer record-length)
+  "Read a record from an opened device DEVICE.
+
+If BUFFER is specified, then it will be filled. If not, one will be allocated.
+
+If RECORD-LENGTH is specified, then it will be assumed that RECORD-LENGTH bytes comprises a record. If it is not specified, then it will be calculated."
+  (assert (not (null (device-stream device)))
+          (device)
+          "The device ~S is not open and it must be in order to read from it."
+          device)
+  (when (null record-length)
+    (setf record-length (device-record-length device)))
+  (when (null buffer)
+    (setf buffer (make-array record-length :element-type '(unsigned-byte 8)
+                                           :initial-element 0)))
+  (read-sequence buffer (device-stream device))
+  buffer)
+
+(defun parse-raw-record (device record)
+  "Parse the record RECORD (an unsigned octet array) according to the device DEVICE.
+
+The output will be a vector of integer values corresponding to each channel."
+  (let ((byte-index 0)
+        (parsed-record (make-array (length (device-channels device))
+                                   :element-type 'integer
+                                   :initial-element 0)))
+    (loop :for channel :across (device-channels device)
+          :for bytes-to-read := (channel-data-length channel)
+          :do (setf (aref parsed-record (channel-index channel))
+                    (ecase (channel-endianness channel)
+                      ((:big)
+                       (loop
+                         :for idx :from byte-index
+                           :below (+ byte-index bytes-to-read)
+                         :for byte := (aref record idx)
+                           :then (logand (aref record idx)
+                                         (ash byte 8))
+                         :finally (return (ash byte (- (channel-byte-position channel))))))
+                      ((:little)
+                       (loop
+                         :for idx :from (1- (+ byte-index bytes-to-read))
+                           :downto byte-index
+                         :for byte := (aref record idx)
+                           :then (logand (aref record idx)
+                                         (ash byte 8))
+                         :finally (return (ash byte (- (channel-byte-position channel))))))))
+              (incf byte-index bytes-to-read)
+          :finally (return parsed-record))))
