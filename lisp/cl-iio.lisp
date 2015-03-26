@@ -292,23 +292,24 @@ The output will be a vector of integer values corresponding to each channel."
                                    :initial-element 0)))
     (loop :for channel :across (device-channels device)
           :for bytes-to-read := (channel-data-length channel)
-          :do (setf (aref parsed-record (channel-index channel))
-                    (ecase (channel-endianness channel)
-                      ((:big)
-                       (loop
-                         :for idx :from byte-index
-                           :below (+ byte-index bytes-to-read)
-                         :for byte := (aref record idx)
-                           :then (logand (aref record idx)
-                                         (ash byte 8))
-                         :finally (return (ash byte (- (channel-byte-position channel))))))
-                      ((:little)
-                       (loop
-                         :for idx :from (1- (+ byte-index bytes-to-read))
+          :when (channel-enabled-p channel)
+            :do (setf (aref parsed-record (channel-index channel))
+                      (ecase (channel-endianness channel)
+                        ((:big)
+                         (loop
+                           :for idx :from byte-index
+                             :below (+ byte-index bytes-to-read)
+                           :for byte := (aref record idx)
+                             :then (logand (aref record idx)
+                                           (ash byte 8))
+                           :finally (return (ash byte (- (channel-byte-position channel))))))
+                        ((:little)
+                         (loop
+                           :for idx :from (1- (+ byte-index bytes-to-read))
                            :downto byte-index
-                         :for byte := (aref record idx)
-                           :then (logand (aref record idx)
-                                         (ash byte 8))
-                         :finally (return (ash byte (- (channel-byte-position channel))))))))
-              (incf byte-index bytes-to-read)
+                           :for byte := (aref record idx)
+                             :then (logand (aref record idx)
+                                           (ash byte 8))
+                           :finally (return (ash byte (- (channel-byte-position channel)))))))
+                      (byte-index (+ byte-index bytes-to-read)))
           :finally (return parsed-record))))
