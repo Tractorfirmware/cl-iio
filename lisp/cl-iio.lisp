@@ -174,11 +174,13 @@
 
 (defmacro with-open-device (device &body body)
   "Execute BODYwith the device DEVICE opened, closing it afterward."
-  `(unwind-protect
-        (progn
-          (open-device device)
-          ,@body)
-     (close-device device)))
+  (let ((gdevice (gensym "DEVICE-")))
+    `(let ((,gdevice ,device))
+       (unwind-protect
+            (progn
+              (open-device ,gdevice)
+              ,@body)
+         (close-device ,gdevice)))))
 
 (defun device-paths ()
   "List all of the device paths."
@@ -372,5 +374,5 @@ The output will be a vector of integer values corresponding to each channel."
                              :then (logand (aref record idx)
                                            (ash byte 8))
                            :finally (return (ash byte (- (channel-byte-position channel)))))))
-                      (byte-index (+ byte-index bytes-to-read)))
+                      byte-index (+ byte-index bytes-to-read))
           :finally (return parsed-record))))
