@@ -35,8 +35,8 @@
                :accessor channel-signedness
                :type (member :signed :unsigned)
                :documentation "The sign of the channel's data.")
-   (data-length :initarg :data-length
-                :accessor channel-data-length
+   (field-length :initarg :field-length
+                :accessor channel-field-length
                 :documentation "The total number of bits in the channel's data.")
    (byte-length :initarg :byte-length
                 :accessor channel-byte-length
@@ -173,7 +173,7 @@
     (setf (device-stream device) nil)))
 
 (defmacro with-open-device (device &body body)
-  "Execute BODYwith the device DEVICE opened, closing it afterward."
+  "Execute BODY with the device DEVICE opened, closing it afterward."
   (let ((gdevice (gensym "DEVICE-")))
     `(let ((,gdevice ,device))
        (unwind-protect
@@ -279,7 +279,7 @@
                                :unparsed-type type-string
                                :endianness endianness
                                :signedness signedness
-                               :data-length bits-total
+                               :field-length bits-total
                                :byte-length bits-used
                                :byte-position shift))
                 :into channels
@@ -321,7 +321,7 @@ If REFRESH-CACHE is T, then the cache entry will be reset for the device that's 
   "Compute the expected length (in bytes) of a record to be read from the device DEVICE. The record length depends on the channels which have been enabled."
   (loop :for channel :across (device-channels device)
         :when (channel-enabled-p channel)
-          :sum (channel-data-length channel) :into bit-length
+          :sum (channel-field-length channel) :into bit-length
         :finally (return (ceiling bit-length 8))))
 
 (defun read-raw-record (device &key buffer record-length)
@@ -351,7 +351,7 @@ The output will be a vector of integer values corresponding to each channel."
                                    :element-type 'integer
                                    :initial-element 0)))
     (loop :for channel :across (device-channels device)
-          :for bytes-to-read := (channel-data-length channel)
+          :for bytes-to-read := (channel-field-length channel)
           ;; XXX: We really shouldn't check whether a channel is
           ;; enabled for every run. This could be calculated and
           ;; cached.
