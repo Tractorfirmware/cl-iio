@@ -343,6 +343,12 @@ If RECORD-LENGTH is specified, then it will be assumed that RECORD-LENGTH bytes 
     (values buffer
             bytes-read)))
 
+(defun adjust-sign (signedness width value)
+  "Adjust the sign of the value VALUE of bit width WIDTH to the sign designated by SIGNEDNESS. In essense, VALUE will be interpreted as a number in 2's complement."
+  (ecase signedness
+    ((:signed) (from-twos-complement value width))
+    ((:unsigned) value)))
+
 (defun parse-raw-record (device record)
   "Parse the record RECORD (an unsigned octet array) according to the device DEVICE.
 
@@ -357,7 +363,8 @@ The output will be a vector of integer values corresponding to each channel."
           ;; enabled for every run. This could be calculated and
           ;; cached.
           ;;
-          ;; FIXME: Account for signedness.
+          ;; We also can compute the channel signedness and byte
+          ;; length once only.
           :when (channel-enabled-p channel)
             :do (setf (aref parsed-record (channel-index channel))
                       (ecase (channel-endianness channel)
@@ -369,7 +376,12 @@ The output will be a vector of integer values corresponding to each channel."
                              :then (logior (aref record idx)
                                            (ash byte 8))
                            :do (print byte)
-                           :finally (return (ash byte (- (channel-byte-position channel))))))
+                           :finally (return (adjust-sign
+                                             (channel-signedness channel)
+                                             (channel-byte-length channel)
+                                             (ash byte
+                                                  (- (channel-byte-position
+                                                      channel)))))))
                         ((:little)
                          (loop
                            :for idx :from (1- (+ byte-index bytes-to-read))
@@ -377,6 +389,11 @@ The output will be a vector of integer values corresponding to each channel."
                            :for byte := (aref record idx)
                              :then (logior (aref record idx)
                                            (ash byte 8))
-                           :finally (return (ash byte (- (channel-byte-position channel)))))))
+                           :finally (return (adjust-sign
+                                             (channel-signedness channel)
+                                             (channel-byte-length channel)
+                                             (ash byte
+                                                  (- (channel-byte-position
+                                                      channel))))))))
                       byte-index (+ byte-index bytes-to-read))
           :finally (return parsed-record))))

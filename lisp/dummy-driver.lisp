@@ -33,4 +33,8 @@
                      :if-does-not-exist ':error)
     (write-line "derp" s))
   (with-open-device *dummy-device*
-    (read-raw-record *dummy-device*)))
+    (multiple-value-bind (raw bytes-read)
+        (read-raw-record *dummy-device*)
+      (format t "RAW: ~S~%" raw)
+      (format t "BYTES READ: ~S~%" bytes-read)
+      (format t "PARSED: ~S~%" (parse-raw-record *dummy-device* raw)))))

@@ -30,3 +30,13 @@
          (subseq string (1+ first-underscore) last-underscore)
          ;; suffix
          (subseq string (1+ last-underscore))))))
+
+(defun from-twos-complement (n width)
+  "Convert the WIDTH bits of the integer N from the two's complement representation."
+  (flet ((invert (bytespec integer)
+           (ldb bytespec (lognot integer))))
+    (let* ((bytespec (byte width 0))
+           (n (ldb bytespec n)))
+      (if (logbitp (1- width) n)
+          (- (1+ (invert bytespec n)))
+          n))))
