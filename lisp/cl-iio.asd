@@ -10,5 +10,6 @@
   :serial t
   :components ((:file "package")
                (:file "utilities")
-               (:file "cl-iio")))
+               (:file "cl-iio")
+               (:file "current-trigger")))
 
