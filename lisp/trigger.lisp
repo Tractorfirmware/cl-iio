@@ -8,7 +8,7 @@
   (merge-pathnames "trigger/current_trigger"
                    (device-pathname device)))
 
-(defun null-out-current-trigger (device)
+(defun remove-trigger (device)
   (with-open-file (s (device-current-trigger-path device)
                      :direction ':output
                      :if-does-not-exist ':error)
