@@ -176,8 +176,9 @@
 (defgeneric close-device (device)
   (:documentation "Close the device DEVICE.")
   (:method ((device device))
-    (close (device-stream device))
-    (setf (device-stream device) nil)))
+    (when (device-stream device)
+      (close (device-stream device))
+      (setf (device-stream device) nil))))
 
 (defmacro with-open-device (device &body body)
   "Execute BODY with the device DEVICE opened, closing it afterward."
