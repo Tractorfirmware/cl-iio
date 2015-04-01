@@ -22,6 +22,9 @@
    #:close-device                       ; GENERIC, METHOD
    #:with-open-device                   ; MACRO
 
+   #:reset-device-cache                 ; FUNCTION
+
+   #:list-devices                       ; FUNCTION
    #:find-device-by-name                ; FUNCTION
    #:find-channel-by-name               ; FUNCTION
 

@@ -298,18 +298,35 @@
 (defvar *device-cache* (make-hash-table :test 'equal)
   "A cache of device objects. The table maps the device name to its device object.")
 
+(defun reset-device-cache ()
+  "Empty the device cache."
+  (setf *device-cache* (make-hash-table :test 'equal))
+  nil)
+
+(defun cache-device (device)
+  "(Re)cache the device DEVICE."
+  (setf (gethash (device-name device) *device-cache*)
+        device))
+
+(defun list-devices (&key (use-cache nil))
+  "List all of the available devices. If USE-CACHE is T (default: NIL), then the cached devices will be listed."
+  (if use-cache
+      (loop :for v :being :the :hash-values :of *device-cache*
+            :collect v)
+      (let ((devices (mapcar #'device-from-device-path (device-paths))))
+        (mapc #'cache-device devices)
+        devices)))
+
 (defun find-device-by-name (name-query &key (refresh-cache nil))
   "Find a device named by the string NAME-QUERY and return a DEVICE object. If one wasn't found, return NIL.
 
 If REFRESH-CACHE is T, then the cache entry will be reset for the device that's found."
   (let ((maybe-object (gethash name-query *device-cache*)))
-    (if (not (or refresh-cache
-                 (null maybe-object)))
+    (if (not (or refresh-cache (null maybe-object)))
         maybe-object
         (dolist (device-path (device-paths))
           (when (string= name-query (name-from-device-path device-path))
-            (return (setf (gethash name-query *device-cache*)
-                          (device-from-device-path device-path))))))))
+            (return (cache-device (device-from-device-path device-path))))))))
 
 (defun find-channel-by-name (device name-query)
   "Find the channel whose name is NAME-QUERY in the device DEVICE. If one couldn't be found, return NIL."
