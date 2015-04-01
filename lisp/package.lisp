@@ -13,6 +13,7 @@
 
    #:device                             ; CLASS
    #:device-channels                    ; ACCESSOR
+   #:do-channels                        ; MACRO
    #:enable-buffer                      ; GENERIC, METHOD
    #:disable-buffer                     ; GENERIC, METHOD
    #:buffer-enabled-p                   ; GENERIC, METHOD

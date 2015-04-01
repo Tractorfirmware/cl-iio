@@ -104,6 +104,13 @@
   (print-unreadable-object (device stream :type t :identity t)
     (prin1 (device-name device) stream)))
 
+(defmacro do-channels ((var device &optional result) &body body)
+  "Iterate over channels of the device DEVICE in a similar way to DOLIST. VAR will be bound to the channel, and RESULT is what will be returned (default: NIL)."
+  (check-type var symbol)
+  `(progn
+     (map nil (lambda (,var) ,@body) ,device)
+     ,result))
+
 (defgeneric enable-buffer (device)
   (:documentation "Enable the buffer of the device DEVICE.")
   (:method ((device device))
