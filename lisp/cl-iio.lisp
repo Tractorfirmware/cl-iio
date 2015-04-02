@@ -404,7 +404,7 @@ The output will be a vector of integer values corresponding to each channel."
                                    :element-type 'integer
                                    :initial-element 0)))
     (loop :for channel :across (device-channels device)
-          :for bytes-to-read := (floor (channel-field-length channel) 8)
+          :for bytes-to-read := (ceiling (channel-field-length channel) 8)
           ;; XXX: We really shouldn't check whether a channel is
           ;; enabled for every run. This could be calculated and
           ;; cached.
