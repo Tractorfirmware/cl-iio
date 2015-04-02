@@ -7,6 +7,7 @@
   :author "Andrey Smirnov & Robert Smith"
   :license "BSD 3-clause (see LICENSE)"
   :depends-on (#:alexandria #:cl-fad)
+  :pathname "lisp/"
   :serial t
   :components ((:file "package")
                (:file "utilities")
