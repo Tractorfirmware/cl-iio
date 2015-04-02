@@ -222,7 +222,7 @@
          (colon (position #\: type-string :test #'char=))
          (slash (position #\/ type-string :test #'char=))
          (shift-sign (position #\> type-string :test #'char=))
-         
+
          ;; Now, find the unparsed components of the type string.
          (endianness (subseq type-string 0 colon))
          (signedness (char type-string (1+ colon)))
@@ -378,6 +378,27 @@ If RECORD-LENGTH is specified, then it will be assumed that RECORD-LENGTH bytes 
   "Parse the record RECORD (an unsigned octet array) according to the device DEVICE.
 
 The output will be a vector of integer values corresponding to each channel."
+  ;; Let
+  ;;
+  ;;     f(i) = length of (active) field i, and
+  ;;     p(i) = position of (active) field i in the record.
+  ;;
+  ;; (Only the *active* channels are numbered. Non-active channels
+  ;; are ignored.)
+  ;;
+  ;; Then they satisfy the following recurrence relations:
+  ;;
+  ;;     p(0) = 0
+  ;;     p(i) = p(i-1) + f(i-1) + [p(i-1) + f(i-1)] % f(i)
+  ;;
+  ;; Below, the variable BYTE-INDEX corresponds to p(i), where i is
+  ;; the zero-indexed iteration number, and the variable BYTES-TO-READ
+  ;; corresponds to f(i).
+  ;;
+  ;; BYTE-INDEX is updated in two parts to avoid having to look ahead
+  ;; at f(i), which requires doing an array bounds check as well as a
+  ;; check for the next active channel. This stuff is implicitly
+  ;; determined by the iteration semantics.
   (let ((byte-index 0)
         (parsed-record (make-array (length (device-channels device))
                                    :element-type 'integer
@@ -391,7 +412,20 @@ The output will be a vector of integer values corresponding to each channel."
           ;; We also can compute the channel signedness and byte
           ;; length once only.
           :when (channel-enabled-p channel)
-            :do (setf (aref parsed-record (channel-index channel))
+            :do (unless (zerop byte-index)
+                  ;; Finish the BYTE-INDEX update from the previous
+                  ;; iteration.
+                  ;;
+                  ;; Note that BYTE-INDEX, which we will call p(i)_old
+                  ;; prior to the increment, is currently equal to
+                  ;;
+                  ;;     p(i)_old = p(i-1) + f(i-1).
+                  ;;
+                  ;; So,
+                  ;;
+                  ;;     p(i) = p(i)_old + p(i)_old % f(i).
+                  (incf byte-index (mod byte-index bytes-to-read)))
+                (setf (aref parsed-record (channel-index channel))
                       (ecase (channel-endianness channel)
                         ((:big)
                          (loop
@@ -420,5 +454,10 @@ The output will be a vector of integer values corresponding to each channel."
                                              (ash byte
                                                   (- (channel-byte-position
                                                       channel))))))))
+                      ;; p(i) =   p(i-1) + f(i-1)
+                      ;;        + [ p(i-1) + f(i-1) ] % f(i)
+                      ;;
+                      ;; The third term, the remainder, is added at
+                      ;; the start of the next iteration.
                       byte-index (+ byte-index bytes-to-read))
           :finally (return parsed-record))))
