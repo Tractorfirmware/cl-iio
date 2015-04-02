@@ -344,10 +344,28 @@ If REFRESH-CACHE is T, then the cache entry will be reset for the device that's 
 
 (defun device-record-length (device)
   "Compute the expected length (in bytes) of a record to be read from the device DEVICE. The record length depends on the channels which have been enabled."
-  (loop :for channel :across (device-channels device)
+  ;; See the function PARSE-RAW-RECORD for an explanation of the
+  ;; alignment calculations being done here.
+  (loop :with offset-bytes := 0
+        ;; We need to record the very last field length in bytes. See
+        ;; the note just below.
+        :with last-enabled-field-byte-length := nil
+        :for channel :across (device-channels device)
+        :for field-bits := (channel-field-length channel)
+        :for field-bytes := (ceiling field-bits 8)
         :when (channel-enabled-p channel)
-          :sum (channel-field-length channel) :into bit-length
-        :finally (return (ceiling bit-length 8))))
+          :do (unless (zerop offset-bytes)
+                (incf offset-bytes (mod offset-bytes field-bytes)))
+              (incf offset-bytes field-bytes)
+              (setf last-enabled-field-byte-length field-bytes)
+        ;; This last part isn't necessary in
+        ;; PARSE-RAW-RECORD. Basically, we are calculating the
+        ;; theoretical p(N) there N is the index of a zero-length
+        ;; enabled record. This necessitates the addition of f(N-1),
+        ;; the final (real) enabled record length.
+        :finally (return (if (null last-enabled-field-byte-length)
+                             0
+                             (+ offset-bytes last-enabled-field-byte-length)))))
 
 (defun read-raw-record (device &key buffer record-length)
   "Read a record from an opened device DEVICE.
