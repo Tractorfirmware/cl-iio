@@ -6,7 +6,7 @@
   (:use #:cl)
   ;; cl-iio.lisp
   (:export
-   #:debug                              ; VARIABLE
+   #:*debug*                            ; VARIABLE
 
    #:channel                            ; CLASS
    #:enable-channel                     ; GENERIC, METHOD
