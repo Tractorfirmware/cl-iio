@@ -6,6 +6,8 @@
   (:use #:cl)
   ;; cl-iio.lisp
   (:export
+   #:debug                              ; VARIABLE
+
    #:channel                            ; CLASS
    #:enable-channel                     ; GENERIC, METHOD
    #:disable-channel                    ; GENERIC, METHOD
