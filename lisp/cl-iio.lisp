@@ -4,6 +4,9 @@
 
 (in-package #:cl-iio)
 
+(defparameter *debug* nil
+  "Print out debugging values.")
+
 (alexandria:define-constant +iio-directory+ (pathname "/sys/bus/iio/devices/")
   :test #'cl-fad:pathname-equal
   :documentation "The path to the list of all of the IIO devices.")
@@ -383,6 +386,13 @@ If RECORD-LENGTH is specified, then it will be assumed that RECORD-LENGTH bytes 
     (setf buffer (make-array record-length :element-type '(unsigned-byte 8)
                                           :initial-element 0)))
   (let ((bytes-read (read-sequence buffer (device-stream device))))
+    (when *debug*
+      (format *trace-output*
+              "~&Device ~A~%~
+               ~4TRead ~D byte~:P: ~S~%"
+              device
+              bytes-read
+              buffer))
     (values buffer
             bytes-read)))
 
@@ -478,4 +488,11 @@ The output will be a vector of integer values corresponding to each channel."
                       ;; The third term, the remainder, is added at
                       ;; the start of the next iteration.
                       byte-index (+ byte-index bytes-to-read))
-          :finally (return parsed-record))))
+          :finally (progn
+                     (when *debug*
+                       (format *trace-output*
+                               "~&Device ~A~%~
+                                ~4TParsed record: ~S~%"
+                               device
+                               parsed-record))
+                     (return parsed-record)))))
