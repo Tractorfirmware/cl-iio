@@ -100,6 +100,7 @@
                               :accessor device-character-device-pathname
                               :documentation "The pathname of the associated character device for devices that support triggered buffer operations.")
    (stream :accessor device-stream
+           :initform nil
            :documentation "The buffered stream."))
   (:documentation "An Industrial IO device."))
 
