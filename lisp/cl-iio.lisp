@@ -170,6 +170,14 @@
 (defgeneric open-device (device)
   (:documentation "Open the device DEVICE for reading.")
   (:method ((device device))
+    (assert (buffer-enabled-p device)
+            (device)
+            "Attempting to open a device ~S whose buffer is not enabled."
+            device)
+    (unless (null (device-stream device))
+      (cerror "Continue anyway."
+              "Attempting to open the device ~S when it is already open."
+              device))
     (setf (device-stream device)
           (open (device-character-device-pathname device)
                 :direction ':input
